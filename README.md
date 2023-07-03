@@ -24,3 +24,6 @@ La manera de ejecutar la pruebas compilado la clase que contiene el main (HttpSe
 localhost:8080/(el archivo o imagen que desea visualizar con su extensión correspondiente)
 ```
 
+## Contribuidores
+♡ Luisa Valentina De la hoz Rocha ♡
+
