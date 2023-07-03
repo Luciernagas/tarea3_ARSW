@@ -1,4 +1,4 @@
-package org.example;
+package org.example.networking;
 
 import java.net.MalformedURLException;
 import java.net.URL;

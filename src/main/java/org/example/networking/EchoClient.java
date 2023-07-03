@@ -1,4 +1,4 @@
-package org.example;
+package org.example.networking;
 
 import java.io.BufferedReader;
 import java.io.IOException;

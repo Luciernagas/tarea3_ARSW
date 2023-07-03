@@ -1,16 +1,13 @@
-package org.example;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+package org.example.networking;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
+import static java.lang.System.out;
 
 public class HttpServer {
     public static void main(String[] args) throws IOException {
@@ -25,17 +22,18 @@ public class HttpServer {
         while(running) {
             Socket clientSocket = null;
             try {
-                System.out.println("Listo para recibir ...");
+                out.println("Listo para recibir ...");
                 clientSocket = serverSocket.accept();
             } catch (IOException e) {
                 System.err.println("Accept failed.");
                 System.exit(1);
             }
-            PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+            OutputStream output = clientSocket.getOutputStream();
+            PrintWriter out = new PrintWriter(output, true);
             BufferedReader in = new BufferedReader(
                     new InputStreamReader(
                             clientSocket.getInputStream()));
-            String inputLine, outputLine;
+            String inputLine;
             boolean firstReqLine = true;
             String request = "";
             while ((inputLine = in.readLine()) != null) {
@@ -48,7 +46,7 @@ public class HttpServer {
                     break;
                 }
             }
-            createResponse(request, out);
+            createResponse(request, out, output);
 
             out.close();
             in.close();
@@ -57,7 +55,7 @@ public class HttpServer {
         serverSocket.close();
     }
 
-    private static void createResponse(String request, PrintWriter out){
+    private static void createResponse(String request, PrintWriter out, OutputStream output) throws IOException {
         System.out.println("request to interpret: " + request);
         if (request.equals("")) {
             return;
@@ -68,22 +66,44 @@ public class HttpServer {
         String path = tokenizedRequest[1];
         String protocol = tokenizedRequest[2];
 
-        Path file = Paths.get("./www" + path);
+        if (path.endsWith(".html")) {
+            Path file = Paths.get("./www" + path);
 
-        String defaultHeader = "HTTP/1.1 200 OK\r\n"
-                + "Content-Type: text/html\r\n"
-                + "\r\n";
+            String defaultHeader = "HTTP/1.1 200 OK\r\n"
+                    + "Content-Type: text/html\r\n"
+                    + "\r\n";
 
-        Charset charset = Charset.forName("UTF-8");
-        out.println(defaultHeader);
-        try (BufferedReader reader = Files.newBufferedReader(file, charset)) {
-            String line = null;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line);
-                out.println(line);
+            Charset charset = Charset.forName("UTF-8");
+            out.println(defaultHeader);
+            try (BufferedReader reader = Files.newBufferedReader(file, charset)) {
+                String line = null;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line);
+                    out.println(line);
+                }
+            } catch (IOException x) {
+                System.err.format("IOException: %s%n", x);
             }
-        } catch (IOException x) {
-            System.err.format("IOException: %s%n", x);
+
+        } else if (path.endsWith(".png") || path.endsWith(".jpg") || path.endsWith(".gif") ){
+            String extension = path.substring(path.lastIndexOf('.') + 1);
+            Path file = Paths.get("./images" + path);
+
+            try{
+                FileInputStream fileInputStream = new FileInputStream(file.toFile());
+                byte[] longFile = new byte[(int) file.toFile().length()];
+                fileInputStream.read(longFile);
+                String defaultHeader = "HTTP/1.1 200 OK\r\n"
+                        + "Content-Type: " + extension + "\r\n"
+                        + "Content-Length: " + longFile.length
+                        + "\r\n";
+                out.println(defaultHeader);
+                output.write(longFile);
+
+            }catch (IOException x){
+                System.err.format("IOException: %s%n", x);
+            }
+
         }
     }
 
